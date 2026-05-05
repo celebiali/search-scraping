@@ -113,8 +113,8 @@ onMounted(() => {
           <ShoppingCart :size="32" />
         </div>
         <div>
-          <h1>Smart Tracker</h1>
-          <p>Universal E-Ticaret Takip Sistemi</p>
+          <h1>PriceTrack</h1>
+          <p>Universal E-Commerce Notifier</p>
         </div>
       </div>
       <div class="header-actions">

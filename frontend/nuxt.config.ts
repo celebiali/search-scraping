@@ -7,9 +7,9 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   pwa: {
     manifest: {
-      name: 'E-Ticaret Takipçi',
-      short_name: 'ETakip',
-      description: 'Ürün Takip ve İndirim Yakalama Botu',
+      name: 'PriceTrack Notifier',
+      short_name: 'PriceTrack',
+      description: 'Universal E-Commerce Price Tracker & Notifier',
       theme_color: '#0f172a',
       background_color: '#0f172a',
       icons: [
