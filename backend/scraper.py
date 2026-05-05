@@ -51,8 +51,9 @@ class ETicaretScraper:
             return None
 
     def _calculate_similarity(self, a, b):
-        # C) Arama Doğruluğu (Metin Benzerliği)
-        return SequenceMatcher(None, a.lower(), b.lower()).ratio()
+        a = a.lower().replace('ı', 'i')
+        b = b.lower().replace('ı', 'i')
+        return SequenceMatcher(None, a, b).ratio()
 
     async def fetch_amazon(self, query):
         url = f"https://www.amazon.com.tr/s?k={query.replace(' ', '+')}"
@@ -127,10 +128,10 @@ class ETicaretScraper:
 
         # B) İstatistiksel Fiyat Anomalisi (Outlier) Filtresi
         prices = [p['price'] for p in filtered_stage_a]
-        if len(prices) > 3:
-            median_price = statistics.median(prices)
-            # Eğer ürün medyanın %40'ından daha ucuzsa (aksesuar olma ihtimali yüksek)
-            filtered_stage_b = [p for p in filtered_stage_a if p['price'] >= (median_price * 0.4)]
+        if len(prices) > 1:
+            max_price = max(prices)
+            # Eğer ürün, bulunan en yüksek fiyatın %40'ından daha ucuzsa aksesuar sayılır.
+            filtered_stage_b = [p for p in filtered_stage_a if p['price'] >= (max_price * 0.4)]
         else:
             filtered_stage_b = filtered_stage_a
 
@@ -173,10 +174,18 @@ class ETicaretScraper:
         if not valid_products:
             return None
 
-        # Ortalama fiyatı hesapla (Aykırı değerleri temizlemeden önceki gerçek piyasa ortalaması)
+        # Ortalama fiyatı hesapla
         avg_price = statistics.mean([p['price'] for p in valid_products])
         
-        best_product = self.filter_products(valid_products, query, category)
+        # AKSESUAR FİLTRESİ: Ortalama fiyatın %30'undan ucuz olanları "yan ürün/aksesuar" say ve ele.
+        # Örn: iPhone 15 için 50.000 TL ortalama varsa, 15.000 TL altı her şey elenir (kılıf, kablo vs).
+        clean_products = [p for p in valid_products if p['price'] > (avg_price * 0.3)]
+        
+        if not clean_products:
+            # Eğer her şey elendiyse (yanlış kategori vs), valid_products'a geri dön ama riskli
+            clean_products = valid_products
+
+        best_product = self.filter_products(clean_products, query, category)
         if best_product:
             best_product['avg_price'] = avg_price
             
