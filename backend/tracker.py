@@ -55,11 +55,9 @@ class TakipSistemi:
         if best_match:
             new_price = best_match['price']
             
-            # Fiyat düşüşü kontrolü
-            if product.last_price > 0 and new_price < product.last_price:
-                # %20'lik bir düşüşü "indirim" sayalım (büyük fırsat avcısı modu)
-                if (product.last_price - new_price) / product.last_price >= 0.20:
-                    await self.notify(product, new_price)
+            # Fiyat düşüşü kontrolü (En düşüğün dibini kovalama)
+            if product.best_price_ever > 0 and new_price < (product.best_price_ever * 0.95):
+                await self.notify(product, new_price)
             
             # Veritabanı güncelleme
             product.last_price = new_price
