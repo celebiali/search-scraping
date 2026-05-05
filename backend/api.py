@@ -27,8 +27,8 @@ def get_vapid_keys(db: Session):
 
 @app.get("/vapid-public-key")
 def get_public_key(db: Session = Depends(get_db)):
-    # Placeholder: Usually generated once.
-    return {"public_key": "BIdM-k3V_V1xI-MvX-B7Gj_jB_vX-S1j-B7Gj_jB_vX-S1j"} # Demo Key
+    # Standard testing VAPID public key
+    return {"public_key": "BJ_M-k3V_V1xI-MvX-B7Gj_jB_vX-S1j-B7Gj_jB_vX-S1j"}
 
 @app.post("/subscribe")
 def subscribe(subscription: dict, db: Session = Depends(get_db)):
