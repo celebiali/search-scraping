@@ -9,7 +9,7 @@ export default defineNuxtConfig({
     manifest: {
       name: 'PriceTrack Notifier',
       short_name: 'PriceTrack',
-      description: 'Universal E-Commerce Price Tracker & Notifier',
+      description: 'Smart E-Commerce Price Tracking & Notifications',
       theme_color: '#0f172a',
       background_color: '#0f172a',
       icons: [
