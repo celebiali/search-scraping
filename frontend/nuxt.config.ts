@@ -3,6 +3,19 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
   srcDir: 'app',
   devtools: { enabled: true },
+  app: {
+    head: {
+      title: 'PriceTrack Notifier',
+      link: [
+        { rel: 'apple-touch-icon', href: '/pwa-512x512.png' }
+      ],
+      meta: [
+        { name: 'apple-mobile-web-app-title', content: 'PriceTrack' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' }
+      ]
+    }
+  },
   modules: ['@vite-pwa/nuxt'],
   css: ['~/assets/css/main.css'],
   pwa: {
