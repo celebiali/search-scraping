@@ -56,57 +56,97 @@ class ETicaretScraper:
         return SequenceMatcher(None, a, b).ratio()
 
     async def fetch_amazon(self, query):
-        url = f"https://www.amazon.com.tr/s?k={query.replace(' ', '+')}"
+        import urllib.parse
+        encoded_query = urllib.parse.quote(query)
+        search_url = f"https://www.amazon.com.tr/s?k={encoded_query}"
+        home_url = "https://www.amazon.com.tr"
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Referer": home_url
+        }
+        
         async with requests.AsyncSession(impersonate="chrome120") as s:
             try:
-                response = await s.get(url, headers=self._get_headers("amazon"), timeout=30)
-                if response.status_code != 200:
+                # 1. Oturumu Isıt (Ana sayfaya git)
+                await s.get(home_url, headers=headers, timeout=10)
+                await asyncio.sleep(1)
+                
+                # 2. Arama Yap
+                resp = await s.get(search_url, headers=headers, timeout=15)
+                print(f"DEBUG Amazon: Status {resp.status_code}")
+                
+                if "api-services-support@amazon.com" in resp.text:
+                    print("WARNING: Amazon CAPTCHA detected")
                     return []
-                
-                soup = BeautifulSoup(response.text, 'html.parser')
-                products = []
+
+                soup = BeautifulSoup(resp.text, 'html.parser')
                 items = soup.select('div[data-component-type="s-search-result"]')
+                if not items:
+                    items = soup.select('.s-result-item[data-asin]')
                 
+                products = []
                 for item in items:
                     name_tag = item.select_one('h2 span')
-                    price_tag = item.select_one('span.a-price span.a-offscreen')
+                    price_whole = item.select_one('.a-price-whole')
                     link_tag = item.select_one('h2 a')
                     
-                    if name_tag and price_tag and link_tag:
-                        name = name_tag.get_text(strip=True)
-                        price = self._parse_price(price_tag.get_text(strip=True))
-                        link = "https://www.amazon.com.tr" + link_tag.get('href', '')
-                        if price:
-                            products.append({"name": name, "price": price, "link": link, "source": "Amazon"})
+                    if name_tag and price_whole and link_tag:
+                        price_str = price_whole.text.replace('.', '').replace(',', '').strip()
+                        products.append({
+                            'name': name_tag.text.strip(),
+                            'price': float(price_str),
+                            'link': 'https://www.amazon.com.tr' + link_tag['href'],
+                            'source': 'Amazon'
+                        })
                 return products
             except Exception as e:
                 print(f"Amazon error: {e}")
                 return []
 
     async def fetch_hepsiburada(self, query):
-        url = f"https://www.hepsiburada.com/ara?q={query.replace(' ', '+')}"
+        import urllib.parse
+        encoded_query = urllib.parse.quote(query)
+        search_url = f"https://www.hepsiburada.com/ara?q={encoded_query}"
+        home_url = "https://www.hepsiburada.com"
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Language": "tr-TR,tr;q=0.9",
+        }
+        
         async with requests.AsyncSession(impersonate="chrome120") as s:
             try:
-                response = await s.get(url, headers=self._get_headers("hepsiburada"), timeout=30)
-                if response.status_code != 200:
-                    return []
+                # 1. Oturumu Isıt
+                await s.get(home_url, headers=headers, timeout=10)
+                await asyncio.sleep(1)
                 
-                soup = BeautifulSoup(response.text, 'html.parser')
-                products = []
-                # Hepsiburada search results selector
+                # 2. Arama Yap
+                resp = await s.get(search_url, headers=headers, timeout=15)
+                print(f"DEBUG Hepsiburada: Status {resp.status_code}")
+                
+                soup = BeautifulSoup(resp.text, 'html.parser')
                 items = soup.select('li[class*="productListContent"]')
+                if not items:
+                    items = soup.select('div[data-test-id="product-card"]')
                 
+                products = []
                 for item in items:
-                    name_tag = item.select_one('h3')
-                    price_tag = item.select_one('div[data-test-id="price-current-price"]')
+                    name_tag = item.select_one('h3') or item.select_one('[data-test-id="product-card-name"]')
+                    price_tag = item.select_one('[data-test-id="price-current-price"]') or item.select_one('div[class*="price-value"]')
                     link_tag = item.select_one('a')
                     
                     if name_tag and price_tag and link_tag:
-                        name = name_tag.get_text(strip=True)
-                        price = self._parse_price(price_tag.get_text(strip=True))
-                        link = "https://www.hepsiburada.com" + link_tag.get('href', '')
-                        if price:
-                            products.append({"name": name, "price": price, "link": link, "source": "Hepsiburada"})
+                        price_text = price_tag.text.split('TL')[0].replace('.', '').replace(',', '.').strip()
+                        products.append({
+                            'name': name_tag.text.strip(),
+                            'price': float(price_text),
+                            'link': 'https://www.hepsiburada.com' + link_tag['href'] if not link_tag['href'].startswith('http') else link_tag['href'],
+                            'source': 'Hepsiburada'
+                        })
                 return products
             except Exception as e:
                 print(f"Hepsiburada error: {e}")
@@ -159,13 +199,14 @@ class ETicaretScraper:
         return best_product
 
     async def get_best_match(self, query, category):
-        query = query.lower().replace('ı', 'i') # Türkçe karakter normalizasyonu
+        query = query.lower().replace('ı', 'i').replace('\u0307', '') # Türkçe karakter ve birleştirici nokta temizliği
         # Paralel istekler
         amazon_task = self.fetch_amazon(query)
         hepsi_task = self.fetch_hepsiburada(query)
         
         results = await asyncio.gather(amazon_task, hepsi_task)
         all_products = results[0] + results[1]
+        print(f"DEBUG: Found {len(all_products)} total products for query '{query}'")
         
         # Filtreleme
         blacklist = self.category_blacklists.get(category.lower(), [])

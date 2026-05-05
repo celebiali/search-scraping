@@ -56,8 +56,12 @@ async def test_notification(db: Session = Depends(get_db)):
         return {"status": "error", "message": "No subscriptions found"}
     
     from pywebpush import webpush, WebPushException
-    # Use the same private key as tracker.py
-    private_key = "xjOetOey40y-4YL5qduMhjaPEuXVgthAP3L1PMBwMAk"
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.hazmat.primitives import serialization
+    import base64
+
+    # VAPID Private key (Base64URL)
+    private_key_b64 = "xjOetOey40y-4YL5qduMhjaPEuXVgthAP3L1PMBwMAk"
     
     count = 0
     for sub in subs:
@@ -72,12 +76,14 @@ async def test_notification(db: Session = Depends(get_db)):
                     "body": "PriceTrack bildirim sisteminiz başarıyla çalışıyor!",
                     "url": "https://pricetrack-notifier.vercel.app"
                 }),
-                vapid_private_key=private_key,
+                vapid_private_key=private_key_b64,
                 vapid_claims={"sub": "mailto:admin@pricetrack.com"}
             )
             count += 1
         except WebPushException as ex:
             print(f"Push failed: {ex}")
+        except Exception as e:
+            print(f"General error: {e}")
             
     return {"status": "success", "sent_to": count}
 
