@@ -54,14 +54,6 @@ const categories = [
   { id: 'ev-yasam', name: 'Ev & Yaşam' }
 ]
 
-const fetchProducts = async () => {
-  try {
-    const data = await $fetch(`${config.public.apiBase}/products`)
-    products.value = data
-  } catch (err) {
-    console.error('Fetch error:', err)
-  }
-}
 
 const addProduct = async () => {
   if (!newQuery.value) return
