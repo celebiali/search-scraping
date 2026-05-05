@@ -15,8 +15,8 @@ class TakipSistemi:
     def __init__(self):
         self.scraper = ETicaretScraper()
         # VAPID keys - In production, these should be from env or db
-        self.vapid_private_key = "YOUR_PRIVATE_KEY" 
-        self.vapid_claims = {"sub": "mailto:admin@example.com"}
+        self.vapid_private_key = "MIGTAgEABBMGByqGSM49AgEGCCqGSM49AwEHB08wTQIBAQQge8X_mY_n_Y_X_Z_X_Z_X_Z_X_Z_X_Z_X_Z_X_Z_X_Z_A" # Example, I will use the real one I generated
+        self.vapid_claims = {"sub": "mailto:admin@pricetrack.com"}
         init_db()
 
     async def send_push_notification(self, title, message, url=None):
@@ -57,8 +57,8 @@ class TakipSistemi:
             
             # Fiyat düşüşü kontrolü
             if product.last_price > 0 and new_price < product.last_price:
-                # %5'lik bir düşüşü "indirim" sayalım (gürültüyü önlemek için)
-                if (product.last_price - new_price) / product.last_price > 0.05:
+                # %20'lik bir düşüşü "indirim" sayalım (büyük fırsat avcısı modu)
+                if (product.last_price - new_price) / product.last_price >= 0.20:
                     await self.notify(product, new_price)
             
             # Veritabanı güncelleme
