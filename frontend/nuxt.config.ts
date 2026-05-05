@@ -6,13 +6,16 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: 'PriceTrack Notifier',
+      viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0',
       link: [
-        { rel: 'apple-touch-icon', href: '/pwa-512x512.png' }
+        { rel: 'apple-touch-icon', href: '/pwa-512x512.png' },
+        { rel: 'icon', type: 'image/png', href: '/pwa-192x192.png' }
       ],
       meta: [
         { name: 'apple-mobile-web-app-title', content: 'PriceTrack' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
-        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' }
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+        { name: 'theme-color', content: '#0ea5e9' }
       ]
     }
   },
@@ -25,6 +28,8 @@ export default defineNuxtConfig({
       description: 'Smart E-Commerce Price Tracking & Notifications',
       theme_color: '#0ea5e9',
       background_color: '#0f172a',
+      display: 'standalone',
+      orientation: 'portrait',
       icons: [
         {
           src: '/pwa-192x192.png',
@@ -41,7 +46,9 @@ export default defineNuxtConfig({
       ]
     },
     workbox: {
-      navigateFallback: '/'
+      navigateFallback: '/',
+      navigateFallbackDenylist: [/^\/api/],
+      globPatterns: ['**/*.{js,css,html,png,svg,ico}']
     },
     devOptions: {
       enabled: true,

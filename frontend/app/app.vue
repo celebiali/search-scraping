@@ -30,16 +30,30 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 const subscribeToPush = async () => {
-  if (!('serviceWorker' in navigator)) return
+  if (typeof window === 'undefined') return
+  if (!('serviceWorker' in navigator)) {
+    alert('Tarayıcınız Service Worker desteklemiyor.')
+    return
+  }
   
   try {
     const registration = await navigator.serviceWorker.ready
+    
+    if (!registration.pushManager) {
+      alert('Bu tarayıcı veya cihaz bildirimleri desteklemiyor. (PWA olarak ana ekrana eklediğinizden emin olun)')
+      return
+    }
+
     const publicVapidKey = 'BM_FojHn3xxetKd-an1SfJZpjxxjxVjEGE9ktdX0CR-vbcKaMMkn2EsUmMOurZMP5Cn75Ko92B_2rifE5auJRnA'
     
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-    })
+    let subscription = await registration.pushManager.getSubscription()
+    
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+      })
+    }
     
     await $fetch(`${config.public.apiBase}/subscribe`, {
       method: 'POST',
@@ -47,10 +61,14 @@ const subscribeToPush = async () => {
     })
     
     notificationStatus.value = 'granted'
-    alert('Bildirimler başarıyla açıldı!')
+    alert('Bildirimler başarıyla açıldı! Fırsat geldiğinde sizi uyaracağız.')
   } catch (err) {
     console.error('Subscription error:', err)
-    alert('Bildirim kaydı başarısız oldu. (Hata: ' + err.message + ')')
+    let errorMsg = err.message
+    if (err.name === 'NotAllowedError') {
+      errorMsg = 'Bildirim izni reddedildi. Lütfen tarayıcı ayarlarından izni sıfırlayın.'
+    }
+    alert('Bildirim kaydı başarısız oldu: ' + errorMsg)
   }
 }
 
@@ -69,7 +87,7 @@ const categories = [
 
 
 const addProduct = async () => {
-  if (!newQuery.value) return
+  if (!newQuery.value.trim()) return
   isSubmitting.value = true
   try {
     await $fetch(`${config.public.apiBase}/products`, {
@@ -81,8 +99,10 @@ const addProduct = async () => {
     })
     newQuery.value = ''
     await fetchProducts()
+    alert('Ürün başarıyla takibe alındı! İlk tarama yapılıyor...')
   } catch (err) {
     console.error('Add error:', err)
+    alert('Ürün eklenirken bir hata oluştu. Lütfen tekrar deneyin.')
   } finally {
     isSubmitting.value = false
   }
@@ -247,6 +267,11 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 3rem;
+  background: rgba(30, 41, 59, 0.4);
+  padding: 1.5rem;
+  border-radius: 2rem;
+  border: 1px solid var(--border);
+  backdrop-filter: blur(10px);
 }
 
 .logo-area {
@@ -256,14 +281,20 @@ onMounted(() => {
 }
 
 .logo-icon {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), #0284c7);
   width: 56px;
   height: 56px;
-  border-radius: 1rem;
+  border-radius: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 16px rgba(56, 189, 248, 0.3);
+  box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4);
+  color: white;
+  transition: transform 0.3s ease;
+}
+
+.logo-area:hover .logo-icon {
+  transform: rotate(-5deg) scale(1.05);
 }
 
 h1 {
