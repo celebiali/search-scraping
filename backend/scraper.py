@@ -158,6 +158,7 @@ class ETicaretScraper:
         return best_product
 
     async def get_best_match(self, query, category):
+        query = query.lower().replace('ı', 'i') # Türkçe karakter normalizasyonu
         # Paralel istekler
         amazon_task = self.fetch_amazon(query)
         hepsi_task = self.fetch_hepsiburada(query)
