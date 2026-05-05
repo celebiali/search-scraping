@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 from models import SessionLocal, TrackedProduct, init_db
 from fastapi.middleware.cors import CORSMiddleware
@@ -76,9 +76,9 @@ class ProductResponse(BaseModel):
     category: str
     last_price: float
     best_price_ever: float
-    last_name: str | None
-    last_link: str | None
-    last_source: str | None
+    last_name: Optional[str]
+    last_link: Optional[str]
+    last_source: Optional[str]
     is_active: bool
 
     class Config:

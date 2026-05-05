@@ -48,9 +48,12 @@ export default defineNuxtConfig({
       type: 'module'
     }
   },
+  routeRules: {
+    '/api/**': { proxy: 'http://134.98.130.247:8000/**' }
+  },
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://134.98.130.247:8000'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || '/api'
     }
   }
 })
