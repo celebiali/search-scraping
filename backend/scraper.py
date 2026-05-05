@@ -160,61 +160,44 @@ class ETicaretScraper:
         if not products:
             return None
 
-        # A) Kategori Bazlı Kara Liste Filtresi
-        blacklist = self.category_blacklists.get(category.lower(), [])
-        filtered_stage_a = []
+        # 1. Kelime Bazlı Ön Filtre (Sorgudaki kelimelerin çoğu üründe geçmeli)
+        query_words = set(query.lower().replace('ı', 'i').split())
+        valid_by_name = []
         for p in products:
-            if not any(word.lower() in p['name'].lower() for word in blacklist):
-                filtered_stage_a.append(p)
+            name_lower = p['name'].lower().replace('ı', 'i')
+            # Sorgudaki kelimelerin en az %80'i ürün isminde geçmeli
+            match_count = sum(1 for word in query_words if word in name_lower)
+            if match_count >= len(query_words) * 0.8:
+                p['match_score'] = match_count / len(query_words)
+                valid_by_name.append(p)
         
-        if not filtered_stage_a:
+        if not valid_by_name:
             return None
 
-        # B) İstatistiksel Fiyat Anomalisi (Outlier) Filtresi
-        prices = [p['price'] for p in filtered_stage_a]
-        if len(prices) > 1:
-            max_price = max(prices)
-            # Eğer ürün, bulunan en yüksek fiyatın %40'ından daha ucuzsa aksesuar sayılır.
-            filtered_stage_b = [p for p in filtered_stage_a if p['price'] >= (max_price * 0.4)]
+        # 2. Dinamik Fiyat Kümeleme (Price Density Filtering)
+        # Fiyatları sırala ve en yoğun oldukları "gerçek ürün" kümesini bul
+        valid_by_name.sort(key=lambda x: x['price'])
+        prices = [p['price'] for p in valid_by_name]
+        
+        if len(prices) > 2:
+            # Medyanı baz alarak, medyandan çok uzak (2 katı veya 0.4 katı) olanları ele
+            median_price = statistics.median(prices)
+            filtered_by_price = [p for p in valid_by_name if (median_price * 0.5) <= p['price'] <= (median_price * 1.8)]
         else:
-            filtered_stage_b = filtered_stage_a
+            filtered_by_price = valid_by_name
 
-        if not filtered_stage_b:
+        if not filtered_by_price:
             return None
 
-        # C) Kesin Model Doğrulaması (Strict Version Matching)
-        # Eğer sorguda "pro", "max", "plus" gibi anahtar kelimeler yoksa, başlığında bu kelimeler geçen ürünleri eleriz.
-        strict_keywords = ["pro", "max", "plus", "ultra", "mini", "lite"]
-        query_lower = query.lower()
-        query_words = set(query_lower.split())
-        
-        filtered_stage_c = []
-        for p in filtered_stage_b:
-            product_name_lower = p['name'].lower()
-            product_words = set(product_name_lower.split())
-            
-            # Sorguda olmayan ama üründe olan kritik kelimeleri kontrol et
-            # Örn: Sorgu "iphone 15", Ürün "iphone 15 pro". "pro" sorguda yok -> ELE.
-            is_valid_version = True
-            for kw in strict_keywords:
-                if kw in product_name_lower and kw not in query_lower:
-                    is_valid_version = False
-                    break
-            
-            if is_valid_version:
-                filtered_stage_c.append(p)
+        # 3. Nihai Puanlama (Benzerlik + Fiyat Uyumu)
+        for p in filtered_by_price:
+            similarity = self._calculate_similarity(query, p['name'])
+            # Puan = Benzerlik skoru (İsim ne kadar temizse o kadar iyi)
+            p['final_score'] = similarity
 
-        if not filtered_stage_c:
-            # Eğer her şey elendiyse, en azından orijinal listeye sadık kal (fail-safe)
-            filtered_stage_c = filtered_stage_b
-
-        # D) Arama Doğruluğu (Metin Benzerliği)
-        # Benzerlik skoru ekle ve sırala
-        for p in filtered_stage_c:
-            p['similarity'] = self._calculate_similarity(query, p['name'])
-        
-        # En az %20 benzerlik ve en düşük fiyat kombinasyonu
-        reliable_products = [p for p in filtered_stage_c if p['similarity'] > 0.2]
+        # En yüksek benzerlik skoruna sahip olanlar arasından en ucuzunu seç
+        best_match = min(filtered_by_price, key=lambda x: (-x['final_score'], x['price']))
+        return best_match
         
         if not reliable_products:
             return None
