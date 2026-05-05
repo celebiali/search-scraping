@@ -59,48 +59,48 @@ class ETicaretScraper:
         import urllib.parse
         encoded_query = urllib.parse.quote(query)
         search_url = f"https://www.amazon.com.tr/s?k={encoded_query}"
-        home_url = "https://www.amazon.com.tr"
         
+        # Mobil (iPhone) kılığına giriyoruz, Amazon mobile daha az blok koyar
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-            "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Referer": home_url
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "tr-TR,tr;q=0.9",
+            "Referer": "https://www.google.com/",
+            "Connection": "keep-alive",
         }
         
         async with requests.AsyncSession(impersonate="chrome120") as s:
             try:
-                # 1. Oturumu Isıt (Ana sayfaya git)
-                await s.get(home_url, headers=headers, timeout=10)
-                await asyncio.sleep(1)
+                # Önce ana sayfaya dokunup bir cookie alalım
+                await s.get("https://www.amazon.com.tr", headers=headers, timeout=10)
+                await asyncio.sleep(0.5)
                 
-                # 2. Arama Yap
-                resp = await s.get(search_url, headers=headers, timeout=15)
-                print(f"DEBUG Amazon: Status {resp.status_code}")
-                
-                if "api-services-support@amazon.com" in resp.text:
-                    print("WARNING: Amazon CAPTCHA detected")
+                resp = await s.get(search_url, headers=headers, timeout=20)
+                if resp.status_code != 200:
+                    print(f"Amazon Blocked: {resp.status_code}")
                     return []
 
                 soup = BeautifulSoup(resp.text, 'html.parser')
-                items = soup.select('div[data-component-type="s-search-result"]')
-                if not items:
-                    items = soup.select('.s-result-item[data-asin]')
+                # Mobil ve Desktop selector'larını harmanla
+                items = soup.select('div[data-component-type="s-search-result"]') or \
+                        soup.select('.s-result-item[data-asin]') or \
+                        soup.select('.s-item-container')
                 
                 products = []
                 for item in items:
-                    name_tag = item.select_one('h2 span')
+                    name_tag = item.select_one('h2 span') or item.select_one('.a-size-base-plus')
                     price_whole = item.select_one('.a-price-whole')
-                    link_tag = item.select_one('h2 a')
+                    link_tag = item.select_one('h2 a') or item.select_one('a.a-link-normal')
                     
                     if name_tag and price_whole and link_tag:
-                        price_str = price_whole.text.replace('.', '').replace(',', '').strip()
-                        products.append({
-                            'name': name_tag.text.strip(),
-                            'price': float(price_str),
-                            'link': 'https://www.amazon.com.tr' + link_tag['href'],
-                            'source': 'Amazon'
-                        })
+                        price_str = price_whole.text.replace('.', '').replace(',', '').replace('\xa0', '').strip()
+                        if price_str:
+                            products.append({
+                                'name': name_tag.text.strip(),
+                                'price': float(price_str),
+                                'link': 'https://www.amazon.com.tr' + link_tag['href'] if not link_tag['href'].startswith('http') else link_tag['href'],
+                                'source': 'Amazon'
+                            })
                 return products
             except Exception as e:
                 print(f"Amazon error: {e}")
@@ -110,43 +110,47 @@ class ETicaretScraper:
         import urllib.parse
         encoded_query = urllib.parse.quote(query)
         search_url = f"https://www.hepsiburada.com/ara?q={encoded_query}"
-        home_url = "https://www.hepsiburada.com"
         
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "tr-TR,tr;q=0.9",
+            "Referer": "https://www.google.com/",
         }
         
         async with requests.AsyncSession(impersonate="chrome120") as s:
             try:
-                # 1. Oturumu Isıt
-                await s.get(home_url, headers=headers, timeout=10)
-                await asyncio.sleep(1)
-                
-                # 2. Arama Yap
-                resp = await s.get(search_url, headers=headers, timeout=15)
-                print(f"DEBUG Hepsiburada: Status {resp.status_code}")
-                
+                resp = await s.get(search_url, headers=headers, timeout=20)
                 soup = BeautifulSoup(resp.text, 'html.parser')
-                items = soup.select('li[class*="productListContent"]')
-                if not items:
-                    items = soup.select('div[data-test-id="product-card"]')
+                
+                # Hepsiburada mobil/masaüstü karışık selector
+                items = soup.select('li[class*="productListContent"]') or \
+                        soup.select('div[data-test-id="product-card"]') or \
+                        soup.select('.m-product-item')
                 
                 products = []
                 for item in items:
-                    name_tag = item.select_one('h3') or item.select_one('[data-test-id="product-card-name"]')
-                    price_tag = item.select_one('[data-test-id="price-current-price"]') or item.select_one('div[class*="price-value"]')
+                    name_tag = item.select_one('h3') or \
+                               item.select_one('[data-test-id="product-card-name"]') or \
+                               item.select_one('.product-title')
+                    
+                    price_tag = item.select_one('[data-test-id="price-current-price"]') or \
+                                item.select_one('div[class*="price-value"]') or \
+                                item.select_one('.product-price')
+                                
                     link_tag = item.select_one('a')
                     
                     if name_tag and price_tag and link_tag:
-                        price_text = price_tag.text.split('TL')[0].replace('.', '').replace(',', '.').strip()
-                        products.append({
-                            'name': name_tag.text.strip(),
-                            'price': float(price_text),
-                            'link': 'https://www.hepsiburada.com' + link_tag['href'] if not link_tag['href'].startswith('http') else link_tag['href'],
-                            'source': 'Hepsiburada'
-                        })
+                        price_text = price_tag.text.split('TL')[0].replace('.', '').replace(',', '.').replace('\xa0', '').strip()
+                        try:
+                            price_val = float(price_text)
+                            products.append({
+                                'name': name_tag.text.strip(),
+                                'price': price_val,
+                                'link': 'https://www.hepsiburada.com' + link_tag['href'] if not link_tag['href'].startswith('http') else link_tag['href'],
+                                'source': 'Hepsiburada'
+                            })
+                        except: continue
                 return products
             except Exception as e:
                 print(f"Hepsiburada error: {e}")
@@ -178,14 +182,39 @@ class ETicaretScraper:
         if not filtered_stage_b:
             return None
 
-        # C) Arama Doğruluğu (Metin Benzerliği)
-        # Benzerlik skoru ekle ve sırala
+        # C) Kesin Model Doğrulaması (Strict Version Matching)
+        # Eğer sorguda "pro", "max", "plus" gibi anahtar kelimeler yoksa, başlığında bu kelimeler geçen ürünleri eleriz.
+        strict_keywords = ["pro", "max", "plus", "ultra", "mini", "lite"]
+        query_lower = query.lower()
+        query_words = set(query_lower.split())
+        
+        filtered_stage_c = []
         for p in filtered_stage_b:
+            product_name_lower = p['name'].lower()
+            product_words = set(product_name_lower.split())
+            
+            # Sorguda olmayan ama üründe olan kritik kelimeleri kontrol et
+            # Örn: Sorgu "iphone 15", Ürün "iphone 15 pro". "pro" sorguda yok -> ELE.
+            is_valid_version = True
+            for kw in strict_keywords:
+                if kw in product_name_lower and kw not in query_lower:
+                    is_valid_version = False
+                    break
+            
+            if is_valid_version:
+                filtered_stage_c.append(p)
+
+        if not filtered_stage_c:
+            # Eğer her şey elendiyse, en azından orijinal listeye sadık kal (fail-safe)
+            filtered_stage_c = filtered_stage_b
+
+        # D) Arama Doğruluğu (Metin Benzerliği)
+        # Benzerlik skoru ekle ve sırala
+        for p in filtered_stage_c:
             p['similarity'] = self._calculate_similarity(query, p['name'])
         
         # En az %20 benzerlik ve en düşük fiyat kombinasyonu
-        # Önce benzerliğe göre eliyoruz (çok alakasızları atıyoruz)
-        reliable_products = [p for p in filtered_stage_b if p['similarity'] > 0.2]
+        reliable_products = [p for p in filtered_stage_c if p['similarity'] > 0.2]
         
         if not reliable_products:
             return None
