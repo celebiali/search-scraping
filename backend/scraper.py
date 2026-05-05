@@ -165,7 +165,21 @@ class ETicaretScraper:
         results = await asyncio.gather(amazon_task, hepsi_task)
         all_products = results[0] + results[1]
         
-        return self.filter_products(all_products, query, category)
+        # Filtreleme
+        blacklist = self.category_blacklists.get(category.lower(), [])
+        valid_products = [p for p in all_products if not any(word.lower() in p['name'].lower() for word in blacklist)]
+        
+        if not valid_products:
+            return None
+
+        # Ortalama fiyatı hesapla (Aykırı değerleri temizlemeden önceki gerçek piyasa ortalaması)
+        avg_price = statistics.mean([p['price'] for p in valid_products])
+        
+        best_product = self.filter_products(valid_products, query, category)
+        if best_product:
+            best_product['avg_price'] = avg_price
+            
+        return best_product
 
 # Test Kullanımı
 if __name__ == "__main__":

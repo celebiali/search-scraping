@@ -13,6 +13,7 @@ class TrackedProduct(Base):
     query = Column(String, nullable=False)
     category = Column(String, nullable=False)
     last_price = Column(Float, default=0.0)
+    avg_price = Column(Float, default=0.0)
     best_price_ever = Column(Float, default=0.0)
     last_link = Column(String)
     last_source = Column(String)

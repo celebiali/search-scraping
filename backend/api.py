@@ -75,6 +75,7 @@ class ProductResponse(BaseModel):
     query: str
     category: str
     last_price: float
+    avg_price: float
     best_price_ever: float
     last_name: Optional[str]
     last_link: Optional[str]

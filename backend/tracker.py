@@ -63,6 +63,7 @@ class TakipSistemi:
             
             # Veritabanı güncelleme
             product.last_price = new_price
+            product.avg_price = best_match.get('avg_price', 0)
             product.last_link = best_match['link']
             product.last_name = best_match['name']
             product.last_source = best_match['source']

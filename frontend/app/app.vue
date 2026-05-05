@@ -196,13 +196,14 @@ onMounted(() => {
             
             <div class="price-info">
               <div class="current-price">
-                <label>Mevcut Fiyat</label>
-                <span v-if="product.last_price">{{ product.last_price.toLocaleString('tr-TR') }} TL</span>
-                <span v-else class="searching">Taranıyor...</span>
+                <label>Ortalama Piyasa</label>
+                <span v-if="product.avg_price">{{ product.avg_price.toLocaleString('tr-TR') }} TL</span>
+                <span v-else class="searching">Hesaplanıyor...</span>
               </div>
               <div class="best-price">
-                <label>En Düşük</label>
-                <span>{{ product.best_price_ever ? product.best_price_ever.toLocaleString('tr-TR') + ' TL' : '-' }}</span>
+                <label>En Ucuz Fırsat</label>
+                <span v-if="product.last_price" class="highlight">{{ product.last_price.toLocaleString('tr-TR') }} TL</span>
+                <span v-else class="searching">Taranıyor...</span>
               </div>
             </div>
 
