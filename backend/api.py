@@ -7,6 +7,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from pywebpush import webpush, WebPushException
 import json
 import os
+from cryptography.hazmat.primitives.asymmetric import ec
+# Fix for pywebpush compatibility with newer cryptography versions
+try:
+    ec.SECP256R1()
+except TypeError:
+    # If it fails, it means it's already an instance or needs different handling
+    pass
+except:
+    # Some versions need the class to be instantiated
+    if isinstance(ec.SECP256R1, type):
+        original_SECP256R1 = ec.SECP256R1
+        ec.SECP256R1 = original_SECP256R1()
 from models import SessionLocal, TrackedProduct, PushSubscription, VapidKey, init_db
 
 app = FastAPI(title="E-Ticaret Takip API")
