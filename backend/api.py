@@ -34,9 +34,40 @@ def get_db():
         db.close()
 
 @app.get("/vapid-public-key")
-def get_public_key(db: Session = Depends(get_db)):
-    # Standard testing VAPID public key
-    return {"public_key": "BJ_M-k3V_V1xI-MvX-B7Gj_jB_vX-S1j-B7Gj_jB_vX-S1j"}
+def get_public_key():
+    return {"public_key": "BM_FojHn3xxetKd-an1SfJZpjxxjxVjEGE9ktdX0CR-vbcKaMMkn2EsUmMOurZMP5Cn75Ko92B_2rifE5auJRnA"}
+
+@app.post("/test-notification")
+async def test_notification(db: Session = Depends(get_db)):
+    subs = db.query(PushSubscription).all()
+    if not subs:
+        return {"status": "error", "message": "No subscriptions found"}
+    
+    from pywebpush import webpush, WebPushException
+    # Use the same private key as tracker.py
+    private_key = "xjOetOey40y-4YL5qduMhjaPEuXVgthAP3L1PMBwMAk"
+    
+    count = 0
+    for sub in subs:
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": sub.endpoint,
+                    "keys": {"p256dh": sub.p256dh, "auth": sub.auth}
+                },
+                data=json.dumps({
+                    "title": "🚀 Test Bildirimi",
+                    "body": "PriceTrack bildirim sisteminiz başarıyla çalışıyor!",
+                    "url": "https://pricetrack-notifier.vercel.app"
+                }),
+                vapid_private_key=private_key,
+                vapid_claims={"sub": "mailto:admin@pricetrack.com"}
+            )
+            count += 1
+        except WebPushException as ex:
+            print(f"Push failed: {ex}")
+            
+    return {"status": "success", "sent_to": count}
 
 @app.post("/subscribe")
 def subscribe(subscription: dict, db: Session = Depends(get_db)):
