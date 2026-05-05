@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  api:
+    build: ./backend
+    container_name: eticaret-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    restart: always
+
+  tracker:
+    build: ./backend
+    container_name: eticaret-tracker
+    command: python tracker.py
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - api
+    restart: always
+
+  frontend:
+    image: node:20-slim
+    container_name: eticaret-frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    restart: always
