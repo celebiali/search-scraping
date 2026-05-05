@@ -25,7 +25,7 @@ const subscribeToPush = async () => {
     const registration = await navigator.serviceWorker.ready
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: 'BJ_M-k3V_V1xI-MvX-B7Gj_jB_vX-S1j-B7Gj_jB_vX-S1j'
+      applicationServerKey: 'BM_FojHn3xxetKd-an1SfJZpjxxjxVjEGE9ktdX0CR-vbcKaMMkn2EsUmMOurZMP5Cn75Ko92B_2rifE5auJRnA'
     })
     
     await $fetch(`${config.public.apiBase}/subscribe`, {
