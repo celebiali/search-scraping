@@ -18,14 +18,27 @@ const fetchProducts = async () => {
   }
 }
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i)
+  }
+  return outputArray
+}
+
 const subscribeToPush = async () => {
   if (!('serviceWorker' in navigator)) return
   
   try {
     const registration = await navigator.serviceWorker.ready
+    const publicVapidKey = 'BM_FojHn3xxetKd-an1SfJZpjxxjxVjEGE9ktdX0CR-vbcKaMMkn2EsUmMOurZMP5Cn75Ko92B_2rifE5auJRnA'
+    
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: 'BM_FojHn3xxetKd-an1SfJZpjxxjxVjEGE9ktdX0CR-vbcKaMMkn2EsUmMOurZMP5Cn75Ko92B_2rifE5auJRnA'
+      applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
     })
     
     await $fetch(`${config.public.apiBase}/subscribe`, {
@@ -37,7 +50,7 @@ const subscribeToPush = async () => {
     alert('Bildirimler başarıyla açıldı!')
   } catch (err) {
     console.error('Subscription error:', err)
-    alert('Bildirim kaydı başarısız oldu.')
+    alert('Bildirim kaydı başarısız oldu. (Hata: ' + err.message + ')')
   }
 }
 
