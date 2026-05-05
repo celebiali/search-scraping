@@ -10,18 +10,20 @@ export default defineNuxtConfig({
       name: 'PriceTrack Notifier',
       short_name: 'PriceTrack',
       description: 'Smart E-Commerce Price Tracking & Notifications',
-      theme_color: '#0f172a',
+      theme_color: '#0ea5e9',
       background_color: '#0f172a',
       icons: [
         {
-          src: 'pwa-192x192.png',
+          src: '/pwa-192x192.png',
           sizes: '192x192',
-          type: 'image/png'
+          type: 'image/png',
+          purpose: 'any maskable'
         },
         {
-          src: 'pwa-512x512.png',
+          src: '/pwa-512x512.png',
           sizes: '512x512',
-          type: 'image/png'
+          type: 'image/png',
+          purpose: 'any maskable'
         }
       ]
     },
