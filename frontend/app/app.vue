@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Plus, Trash2, ExternalLink, RefreshCw, ShoppingCart, Tag, Bell } from 'lucide-vue-next'
+import { Plus, Trash2, ExternalLink, RefreshCw, ShoppingCart, Tag, Bell, Power } from 'lucide-vue-next'
 
 const config = useRuntimeConfig()
 const products = ref([])
@@ -130,6 +130,17 @@ const toggleStatus = async (id) => {
   }
 }
 
+const syncProduct = async (id) => {
+  try {
+    await $fetch(`${config.public.apiBase}/products/${id}/sync`, {
+      method: 'POST'
+    })
+    await fetchProducts()
+  } catch (err) {
+    console.error('Sync error:', err)
+  }
+}
+
 onMounted(() => {
   fetchProducts()
   checkNotificationPermission()
@@ -216,8 +227,11 @@ onMounted(() => {
             <div class="card-header">
               <span class="category-tag">{{ product.category }}</span>
               <div class="card-actions">
-                <button class="icon-btn" @click="toggleStatus(product.id)">
+                <button class="icon-btn" @click="syncProduct(product.id)" title="Şimdi Tara">
                   <RefreshCw :size="16" />
+                </button>
+                <button class="icon-btn" @click="toggleStatus(product.id)" :class="{ 'active': product.is_active }" title="Duraklat/Başlat">
+                  <Power :size="16" />
                 </button>
                 <button class="icon-btn delete" @click="deleteProduct(product.id)">
                   <Trash2 :size="16" />

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
@@ -138,13 +138,48 @@ class ProductResponse(BaseModel):
 def get_products(db: Session = Depends(get_db)):
     return db.query(TrackedProduct).all()
 
+async def run_initial_sync(product_id: int):
+    db = SessionLocal()
+    try:
+        from tracker import TakipSistemi
+        product = db.query(TrackedProduct).filter(TrackedProduct.id == product_id).first()
+        if product:
+            sistem = TakipSistemi()
+            await sistem.track_product(db, product)
+    finally:
+        db.close()
+
 @app.post("/products", response_model=ProductResponse)
-def add_product(product: ProductCreate, db: Session = Depends(get_db)):
+async def add_product(product: ProductCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    # Duplicate check
+    existing = db.query(TrackedProduct).filter(
+        TrackedProduct.query == product.query,
+        TrackedProduct.category == product.category
+    ).first()
+    if existing:
+        return existing
+        
     db_product = TrackedProduct(query=product.query, category=product.category)
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
+    
+    # Trigger instant scan
+    background_tasks.add_task(run_initial_sync, db_product.id)
+    
     return db_product
+
+@app.post("/products/{product_id}/sync")
+async def sync_product(product_id: int, db: Session = Depends(get_db)):
+    from tracker import TakipSistemi
+    product = db.query(TrackedProduct).filter(TrackedProduct.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Ürün bulunamadı")
+    
+    # Run immediate scan
+    sistem = TakipSistemi()
+    await sistem.track_product(db, product)
+    return {"status": "success", "last_price": product.last_price}
 
 @app.delete("/products/{product_id}")
 def delete_product(product_id: int, db: Session = Depends(get_db)):

@@ -83,28 +83,39 @@ class TakipSistemi:
         while True:
             db = SessionLocal()
             try:
+                # Tüm aktif ürünleri al
                 products = db.query(TrackedProduct).filter(TrackedProduct.is_active == True).all()
                 
                 if not products:
-                    logger.info("ℹ️ Takip listesi boş. 10 dakika bekleniyor...")
-                    await asyncio.sleep(600)
+                    logger.info("ℹ️ Takip listesi boş. 5 dakika bekleniyor...")
+                    await asyncio.sleep(300)
                     continue
 
+                any_tracked = False
                 for product in products:
-                    await self.track_product(db, product)
+                    now = datetime.utcnow()
+                    # Şartlar: Hiç taranmamış (last_checked is None) VEYA 1 saatten fazla süre geçmiş
+                    is_new = product.last_checked is None
+                    is_stale = not is_new and (now - product.last_checked).total_seconds() > 3600
                     
-                    # IP Engeli (Rate Limit) önlemi: 3-7 saniye rastgele gecikme
-                    delay = random.uniform(3, 7)
-                    logger.info(f"⏳ {delay:.2f} saniye bekleniyor...")
-                    await asyncio.sleep(delay)
+                    if is_new or is_stale:
+                        any_tracked = True
+                        await self.track_product(db, product)
+                        
+                        # IP Engeli önlemi
+                        delay = random.uniform(3, 7)
+                        await asyncio.sleep(delay)
                 
-                # Tüm liste tarandıktan sonra 1 saat uyku
-                logger.info("🛌 Tüm liste tarandı. 1 saat uyku moduna geçiliyor...")
-                await asyncio.sleep(3600)
+                if not any_tracked:
+                    # Yapacak iş yoksa kısa süre bekle ve tekrar kontrol et (yeni ürün gelebilir)
+                    await asyncio.sleep(60)
+                else:
+                    # Bir tur bittiyse biraz dinlen
+                    await asyncio.sleep(30)
                 
             except Exception as e:
                 logger.error(f"❌ Döngü hatası: {e}")
-                await asyncio.sleep(60) # Hata durumunda 1 dakika bekle ve tekrar dene
+                await asyncio.sleep(60)
             finally:
                 db.close()
 
