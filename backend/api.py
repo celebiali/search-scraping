@@ -25,6 +25,14 @@ def get_vapid_keys(db: Session):
         pass
     return keys
 
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 @app.get("/vapid-public-key")
 def get_public_key(db: Session = Depends(get_db)):
     # Standard testing VAPID public key
@@ -56,13 +64,6 @@ app.add_middleware(
 
 init_db()
 
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 # Pydantic Modelleri
 class ProductCreate(BaseModel):
