@@ -102,7 +102,8 @@ const addProduct = async () => {
     alert('Ürün başarıyla takibe alındı! İlk tarama yapılıyor...')
   } catch (err) {
     console.error('Add error:', err)
-    alert('Ürün eklenirken bir hata oluştu. Lütfen tekrar deneyin.')
+    const errorDetail = err.data?.detail || err.message || 'Bilinmeyen bir hata'
+    alert(`Ürün eklenirken bir hata oluştu: ${errorDetail}`)
   } finally {
     isSubmitting.value = false
   }

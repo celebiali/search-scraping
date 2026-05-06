@@ -151,6 +151,7 @@ async def run_initial_sync(product_id: int):
 
 @app.post("/products", response_model=ProductResponse)
 async def add_product(product: ProductCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    logger.info(f"Adding new product: {product.query} in category {product.category}")
     try:
         # Duplicate check
         existing = db.query(TrackedProduct).filter(
