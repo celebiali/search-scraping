@@ -2,24 +2,24 @@ from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
-from models import SessionLocal, TrackedProduct, init_db
+from models import SessionLocal, TrackedProduct, PushSubscription, VapidKey, init_db
 from fastapi.middleware.cors import CORSMiddleware
 from pywebpush import webpush, WebPushException
 import json
 import os
+import logging
 from cryptography.hazmat.primitives.asymmetric import ec
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
 # Fix for pywebpush compatibility with newer cryptography versions
 try:
-    ec.SECP256R1()
-except TypeError:
-    # If it fails, it means it's already an instance or needs different handling
-    pass
-except:
-    # Some versions need the class to be instantiated
+    # If SECP256R1 is a class, try to instantiate it (expected by some pywebpush versions)
     if isinstance(ec.SECP256R1, type):
-        original_SECP256R1 = ec.SECP256R1
-        ec.SECP256R1 = original_SECP256R1()
-from models import SessionLocal, TrackedProduct, PushSubscription, VapidKey, init_db
+        ec.SECP256R1 = ec.SECP256R1()
+except Exception as e:
+    logger.warning(f"Note: Cryptography monkey-patching skipped: {e}")
 
 app = FastAPI(title="E-Ticaret Takip API")
 
@@ -151,23 +151,28 @@ async def run_initial_sync(product_id: int):
 
 @app.post("/products", response_model=ProductResponse)
 async def add_product(product: ProductCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    # Duplicate check
-    existing = db.query(TrackedProduct).filter(
-        TrackedProduct.query == product.query,
-        TrackedProduct.category == product.category
-    ).first()
-    if existing:
-        return existing
+    try:
+        # Duplicate check
+        existing = db.query(TrackedProduct).filter(
+            TrackedProduct.query == product.query,
+            TrackedProduct.category == product.category
+        ).first()
+        if existing:
+            return existing
+            
+        db_product = TrackedProduct(query=product.query, category=product.category)
+        db.add(db_product)
+        db.commit()
+        db.refresh(db_product)
         
-    db_product = TrackedProduct(query=product.query, category=product.category)
-    db.add(db_product)
-    db.commit()
-    db.refresh(db_product)
-    
-    # Trigger instant scan
-    background_tasks.add_task(run_initial_sync, db_product.id)
-    
-    return db_product
+        # Trigger instant scan
+        background_tasks.add_task(run_initial_sync, db_product.id)
+        
+        return db_product
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error adding product: {e}")
+        raise HTTPException(status_code=500, detail=f"Veritabanı hatası: {str(e)}")
 
 @app.post("/products/{product_id}/sync")
 async def sync_product(product_id: int, db: Session = Depends(get_db)):

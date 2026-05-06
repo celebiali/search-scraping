@@ -49,8 +49,17 @@ class VapidKey(Base):
     public_key = Column(String, nullable=False)
     private_key = Column(String, nullable=False)
 
+import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Database Setup
-engine = create_engine('sqlite:///tracking_system.db', connect_args={"check_same_thread": False, "timeout": 30})
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, 'tracking_system.db')
+engine = create_engine(f'sqlite:///{DB_PATH}', connect_args={"check_same_thread": False, "timeout": 30})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 from sqlalchemy import event
@@ -63,4 +72,10 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
     cursor.close()
 
 def init_db():
-    Base.metadata.create_all(bind=engine)
+    logger.info(f"Initializing database at {DB_PATH}")
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created successfully")
+    except Exception as e:
+        logger.error(f"Error initializing database: {e}")
+        raise

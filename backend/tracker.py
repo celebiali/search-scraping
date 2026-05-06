@@ -38,7 +38,9 @@ class TakipSistemi:
                     vapid_claims=self.vapid_claims
                 )
             except WebPushException as ex:
-                print("Push failed: {}", repr(ex))
+                logger.error(f"Push failed: {repr(ex)}")
+            except Exception as ex:
+                logger.error(f"Unexpected push error: {repr(ex)}")
         db.close()
 
     async def notify(self, product, new_price):
