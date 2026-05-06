@@ -47,7 +47,7 @@ def get_db():
 
 @app.get("/vapid-public-key")
 def get_public_key():
-    return {"public_key": "BM_FojHn3xxetKd-an1SfJZpjxxjxVjEGE9ktdX0CR-vbcKaMMkn2EsUmMOurZMP5Cn75Ko92B_2rifE5auJRnA"}
+    return {"public_key": "BF-Ff8oDzJzlzVmMhLarvYhDl-oxKeXsJbZL-MhGAZJqsiVkBkDYj81RBAQ9OLMt1YS851EoznKE5OiT1B2VjIQ"}
 
 @app.post("/test-notification")
 async def test_notification(db: Session = Depends(get_db)):
@@ -61,7 +61,7 @@ async def test_notification(db: Session = Depends(get_db)):
     import base64
 
     # VAPID Private key (Base64URL)
-    private_key_b64 = "xjOetOey40y-4YL5qduMhjaPEuXVgthAP3L1PMBwMAk"
+    private_key_b64 = "kZJ0SsD1SeqO-bf2iWmDxppuHwG3RVLmyYkXZkj6XPU"
     
     count = 0
     for sub in subs:

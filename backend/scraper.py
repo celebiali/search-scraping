@@ -198,17 +198,6 @@ class ETicaretScraper:
         # En yüksek benzerlik skoruna sahip olanlar arasından en ucuzunu seç
         best_match = min(filtered_by_price, key=lambda x: (-x['final_score'], x['price']))
         return best_match
-        
-        if not reliable_products:
-            return None
-
-        # En ucuz ve en doğru ürünü bul (Ağırlıklı bir puanlama da yapılabilir ama istenen "EN UCUZ ve DOĞRU ilk ürün")
-        # Benzerliği %50'den yüksek olanlar arasından en ucuzu seçmek mantıklı bir yaklaşım
-        high_accuracy = [p for p in reliable_products if p['similarity'] > 0.4]
-        target_list = high_accuracy if high_accuracy else reliable_products
-        
-        best_product = min(target_list, key=lambda x: x['price'])
-        return best_product
 
     async def get_best_match(self, query, category):
         query = query.lower().replace('ı', 'i').replace('\u0307', '') # Türkçe karakter ve birleştirici nokta temizliği

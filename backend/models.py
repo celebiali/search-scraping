@@ -50,8 +50,17 @@ class VapidKey(Base):
     private_key = Column(String, nullable=False)
 
 # Database Setup
-engine = create_engine('sqlite:///tracking_system.db')
+engine = create_engine('sqlite:///tracking_system.db', connect_args={"check_same_thread": False, "timeout": 30})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+from sqlalchemy import event
+
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.close()
 
 def init_db():
     Base.metadata.create_all(bind=engine)

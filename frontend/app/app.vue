@@ -44,7 +44,7 @@ const subscribeToPush = async () => {
       return
     }
 
-    const publicVapidKey = 'BM_FojHn3xxetKd-an1SfJZpjxxjxVjEGE9ktdX0CR-vbcKaMMkn2EsUmMOurZMP5Cn75Ko92B_2rifE5auJRnA'
+    const publicVapidKey = 'BF-Ff8oDzJzlzVmMhLarvYhDl-oxKeXsJbZL-MhGAZJqsiVkBkDYj81RBAQ9OLMt1YS851EoznKE5OiT1B2VjIQ'
     
     let subscription = await registration.pushManager.getSubscription()
     

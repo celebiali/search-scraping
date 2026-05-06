@@ -48,7 +48,8 @@ export default defineNuxtConfig({
     workbox: {
       navigateFallback: '/',
       navigateFallbackDenylist: [/^\/api/],
-      globPatterns: ['**/*.{js,css,html,png,svg,ico}']
+      globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
+      importScripts: ['/custom-sw.js']
     },
     devOptions: {
       enabled: true,
@@ -56,7 +57,7 @@ export default defineNuxtConfig({
     }
   },
   routeRules: {
-    '/api/**': { proxy: 'http://134.98.130.247:8000/**' }
+    '/api/**': { proxy: 'http://127.0.0.1:8000/**' }
   },
   runtimeConfig: {
     public: {

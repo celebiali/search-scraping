@@ -15,7 +15,7 @@ class TakipSistemi:
     def __init__(self):
         self.scraper = ETicaretScraper()
         # VAPID keys - In production, these should be from env or db
-        self.vapid_private_key = "xjOetOey40y-4YL5qduMhjaPEuXVgthAP3L1PMBwMAk" 
+        self.vapid_private_key = "kZJ0SsD1SeqO-bf2iWmDxppuHwG3RVLmyYkXZkj6XPU" 
         self.vapid_claims = {"sub": "mailto:admin@pricetrack.com"}
         init_db()
 
