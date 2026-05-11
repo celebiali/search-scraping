@@ -16,11 +16,13 @@ class ETicaretScraper:
         
         # A) Kategori Bazlı Dinamik Kara Liste (Stop-Words)
         self.category_blacklists = {
-            "elektronik": ["kılıf", "ekran koruyucu", "kablo", "şarj", "lens", "stand", "kutu", "adaptör", "askı", "sticker"],
-            "giyim": ["askı", "sprey", "boya", "fırça", "düğme", "temizleme", "bakım", "yedek"],
-            "kozmetik": ["fırça", "sünger", "aparat", "kutu", "çanta", "boş"],
-            "ev-yasam": ["yedek", "parça", "vida", "eklenti"]
+            "elektronik": ["kılıf", "ekran koruyucu", "kablo", "şarj", "lens", "stand", "kutu", "adaptör", "askı", "sticker", "aparat", "başlık"],
+            "giyim": ["askı", "sprey", "boya", "fırça", "düğme", "temizleme", "bakım", "yedek", "kutu", "bağcık"],
+            "kozmetik": ["fırça", "sünger", "aparat", "kutu", "çanta", "boş", "yedek"],
+            "ev-yasam": ["yedek", "parça", "vida", "eklenti", "aparat", "aksesuar", "kılıf"]
         }
+        # Evrensel gürültü kelimeleri (Kategori bağımsız)
+        self.universal_blacklist = ["yedek", "parça", "tamir", "kiti", "seti", "aksesuar", "uyumlu", "için", "aparat", "kılıfı"]
 
     def _get_headers(self, site="amazon"):
         headers = {
@@ -88,16 +90,30 @@ class ETicaretScraper:
                 
                 products = []
                 for item in items:
-                    name_tag = item.select_one('h2 span') or item.select_one('.a-size-base-plus')
+                    # Amazon mobil sayfalarda başlık genelde birden fazla span (marka + isim) şeklinde bölünür
+                    # Bu span'ları birleştirerek tam ismi oluşturuyoruz
+                    name_nodes = item.select('h2 span') or \
+                                 item.select('.a-size-base-plus') or \
+                                 item.select('.s-line-clamp-3')
+                    
+                    if name_nodes:
+                        name_text = " ".join([n.get_text(strip=True) for n in name_nodes if n.get_text(strip=True)])
+                    else:
+                        continue
+                    
+                    if not name_text:
+                        continue
+                    
                     price_whole = item.select_one('.a-price-whole')
                     link_tag = item.select_one('h2 a') or item.select_one('a.a-link-normal')
                     
-                    if name_tag and price_whole and link_tag:
-                        price_str = price_whole.text.replace('.', '').replace(',', '').replace('\xa0', '').strip()
-                        if price_str:
+                    if name_text and price_whole and link_tag:
+                        # Amazon TR fiyat formatı: 7.199,00
+                        price_val = self._parse_price(price_whole.text)
+                        if price_val:
                             products.append({
-                                'name': name_tag.text.strip(),
-                                'price': float(price_str),
+                                'name': name_text,
+                                'price': price_val,
                                 'link': 'https://www.amazon.com.tr' + link_tag['href'] if not link_tag['href'].startswith('http') else link_tag['href'],
                                 'source': 'Amazon'
                             })
@@ -195,11 +211,15 @@ class ETicaretScraper:
         # 3. Nihai Puanlama (Benzerlik + Fiyat Uyumu)
         for p in filtered_by_price:
             similarity = self._calculate_similarity(query, p['name'])
-            # Puan = Benzerlik skoru (İsim ne kadar temizse o kadar iyi)
+            # Puan = Benzerlik skoru
             p['final_score'] = similarity
+
+        # Ortalama fiyatı bu küme üzerinden tekrar hesapla (daha doğru sonuç için)
+        cluster_avg = statistics.mean([p['price'] for p in filtered_by_price])
 
         # En yüksek benzerlik skoruna sahip olanlar arasından en ucuzunu seç
         best_match = min(filtered_by_price, key=lambda x: (-x['final_score'], x['price']))
+        best_match['cluster_avg'] = cluster_avg
         return best_match
 
     async def get_best_match(self, query, category):
@@ -214,25 +234,32 @@ class ETicaretScraper:
         
         # Filtreleme
         blacklist = self.category_blacklists.get(category.lower(), [])
-        valid_products = [p for p in all_products if not any(word.lower() in p['name'].lower() for word in blacklist)]
+        
+        # Evrensel ve kategori bazlı filtreleme
+        valid_products = []
+        for p in all_products:
+            name_lower = p['name'].lower()
+            if any(word.lower() in name_lower for word in blacklist): continue
+            if any(f" {word.lower()} " in f" {name_lower} " for word in self.universal_blacklist): continue
+            valid_products.append(p)
         
         if not valid_products:
             return None
 
-        # Ortalama fiyatı hesapla
-        avg_price = statistics.mean([p['price'] for p in valid_products])
+        # İlk aşama fiyat temizliği (Aksesuar ayıklama)
+        prices = sorted([p['price'] for p in valid_products])
+        median_price = statistics.median(prices)
         
-        # AKSESUAR FİLTRESİ: Ortalama fiyatın %30'undan ucuz olanları "yan ürün/aksesuar" say ve ele.
-        # Örn: iPhone 15 için 50.000 TL ortalama varsa, 15.000 TL altı her şey elenir (kılıf, kablo vs).
-        clean_products = [p for p in valid_products if p['price'] > (avg_price * 0.3)]
+        # Medyanın %20'sinden ucuz olanları genelde aksesuar sayabiliriz (Universal kural)
+        clean_products = [p for p in valid_products if p['price'] > (median_price * 0.2)]
         
         if not clean_products:
-            # Eğer her şey elendiyse (yanlış kategori vs), valid_products'a geri dön ama riskli
             clean_products = valid_products
 
         best_product = self.filter_products(clean_products, query, category)
         if best_product:
-            best_product['avg_price'] = avg_price
+            # cluster_avg (temizlenmiş kümenin ortalaması) yoksa genel ortalamayı kullan
+            best_product['avg_price'] = best_product.get('cluster_avg', median_price)
             
         return best_product
 
