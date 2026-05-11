@@ -1,18 +1,19 @@
 self.addEventListener('push', (event) => {
+  console.log('Push event received:', event);
   let data = {};
+  
   if (event.data) {
     try {
       data = event.data.json();
     } catch (e) {
-      data = { title: 'PriceTrack Notifier', body: event.data.text() };
+      console.warn('Push data is not JSON:', event.data.text());
+      data = { title: 'Fiyat Takibi', body: event.data.text() };
     }
   }
 
-  const title = data.title || 'PriceTrack Notifier';
+  const title = data.title || 'Fiyat Takibi';
   const options = {
-    body: data.body || 'Bir fiyat değişikliği algılandı!',
-    icon: '/pwa-192x192.png',
-    badge: '/pwa-192x192.png',
+    body: data.body || 'Bir güncelleme var!',
     vibrate: [100, 50, 100],
     tag: 'price-alert',
     renotify: true,
