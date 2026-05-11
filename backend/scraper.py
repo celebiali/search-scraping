@@ -162,6 +162,9 @@ class ETicaretScraper:
 
         # 1. Kelime Bazlı Ön Filtre (Sorgudaki kelimelerin çoğu üründe geçmeli)
         query_words = set(query.lower().replace('ı', 'i').split())
+        if not query_words:
+            return None
+
         valid_by_name = []
         for p in products:
             name_lower = p['name'].lower().replace('ı', 'i')

@@ -152,6 +152,9 @@ async def run_initial_sync(product_id: int):
 @app.post("/products", response_model=ProductResponse)
 async def add_product(product: ProductCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     logger.info(f"Adding new product: {product.query} in category {product.category}")
+    if not product.query or not product.query.strip():
+        raise HTTPException(status_code=400, detail="Ürün sorgusu boş olamaz")
+        
     try:
         # Duplicate check
         existing = db.query(TrackedProduct).filter(
@@ -189,12 +192,19 @@ async def sync_product(product_id: int, db: Session = Depends(get_db)):
 
 @app.delete("/products/{product_id}")
 def delete_product(product_id: int, db: Session = Depends(get_db)):
-    product = db.query(TrackedProduct).filter(TrackedProduct.id == product_id).first()
-    if not product:
-        raise HTTPException(status_code=404, detail="Ürün bulunamadı")
-    db.delete(product)
-    db.commit()
-    return {"message": "Ürün silindi"}
+    try:
+        product = db.query(TrackedProduct).filter(TrackedProduct.id == product_id).first()
+        if not product:
+            raise HTTPException(status_code=404, detail="Ürün bulunamadı")
+        db.delete(product)
+        db.commit()
+        return {"message": "Ürün silindi"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting product: {e}")
+        raise HTTPException(status_code=500, detail=f"Silme işlemi başarısız: {str(e)}")
 
 @app.post("/products/{product_id}/toggle")
 def toggle_product(product_id: int, db: Session = Depends(get_db)):

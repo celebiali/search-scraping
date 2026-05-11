@@ -61,22 +61,26 @@ class TakipSistemi:
             if product.best_price_ever > 0 and new_price < (product.best_price_ever * 0.95):
                 await self.notify(product, new_price)
             
-            # Veritabanı güncelleme
-            product.last_price = new_price
-            product.avg_price = best_match.get('avg_price', 0)
-            product.last_link = best_match['link']
-            product.last_name = best_match['name']
-            product.last_source = best_match['source']
-            product.last_checked = datetime.utcnow()
-            
-            if product.best_price_ever == 0 or new_price < product.best_price_ever:
-                product.best_price_ever = new_price
-            
-            # Geçmişe ekle
-            history = PriceHistory(product_id=product.id, price=new_price)
-            db.add(history)
-            db.commit()
-            logger.info(f"✅ Güncellendi: {product.last_name} - {new_price} TL")
+            try:
+                # Veritabanı güncelleme
+                product.last_price = new_price
+                product.avg_price = best_match.get('avg_price', 0)
+                product.last_link = best_match['link']
+                product.last_name = best_match['name']
+                product.last_source = best_match['source']
+                product.last_checked = datetime.utcnow()
+                
+                if product.best_price_ever == 0 or new_price < product.best_price_ever:
+                    product.best_price_ever = new_price
+                
+                # Geçmişe ekle
+                history = PriceHistory(product_id=product.id, price=new_price)
+                db.add(history)
+                db.commit()
+                logger.info(f"✅ Güncellendi: {product.last_name} - {new_price} TL")
+            except Exception as e:
+                db.rollback()
+                logger.error(f"❌ Veritabanı güncelleme hatası ({product.query}): {e}")
         else:
             logger.warning(f"⚠️ Ürün bulunamadı: {product.query}")
 
