@@ -172,6 +172,15 @@ async def add_product(product: ProductCreate, background_tasks: BackgroundTasks,
         # Trigger instant scan
         background_tasks.add_task(run_initial_sync, db_product.id)
         
+        # Anında bildirim gönder (Test amaçlı ve kullanıcı deneyimi için)
+        sistem = TakipSistemi()
+        background_tasks.add_task(
+            sistem.send_push_notification,
+            "✨ Yeni Ürün Takibi Başlatıldı",
+            f"'{product.query}' başarıyla sisteme eklendi. En uygun fiyatlar taranıyor! 🔍",
+            "https://pricetrack-notifier.vercel.app"
+        )
+        
         return db_product
     except Exception as e:
         db.rollback()
