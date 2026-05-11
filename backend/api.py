@@ -13,14 +13,20 @@ from tracker import TakipSistemi
 
 # Configure logging
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+# Global TakipSistemi instance
+sistem_servisi = TakipSistemi()
 
 # Fix for pywebpush compatibility with newer cryptography versions
 try:
-    # If SECP256R1 is a class, try to instantiate it (expected by some pywebpush versions)
     if isinstance(ec.SECP256R1, type):
-        ec.SECP256R1 = ec.SECP256R1()
+        class SECP256R1Proxy(ec.SECP256R1):
+            def __call__(self):
+                return self
+        ec.SECP256R1 = SECP256R1Proxy()
 except Exception as e:
-    logger.warning(f"Note: Cryptography monkey-patching skipped: {e}")
+    logger.warning(f"Note: Cryptography monkey-patching failed: {e}")
 
 app = FastAPI(title="E-Ticaret Takip API")
 
@@ -173,9 +179,9 @@ async def add_product(product: ProductCreate, background_tasks: BackgroundTasks,
         background_tasks.add_task(run_initial_sync, db_product.id)
         
         # Anında bildirim gönder (Test amaçlı ve kullanıcı deneyimi için)
-        sistem = TakipSistemi()
+        logger.info(f"🚀 Ürün eklendi bildirimi tetikleniyor: {product.query}")
         background_tasks.add_task(
-            sistem.send_push_notification,
+            sistem_servisi.send_push_notification,
             "✨ Yeni Ürün Takibi Başlatıldı",
             f"'{product.query}' başarıyla sisteme eklendi. En uygun fiyatlar taranıyor! 🔍",
             "https://pricetrack-notifier.vercel.app"

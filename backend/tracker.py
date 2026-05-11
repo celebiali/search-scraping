@@ -6,7 +6,18 @@ from sqlalchemy.orm import Session
 from models import SessionLocal, TrackedProduct, PriceHistory, PushSubscription, init_db
 from scraper import ETicaretScraper
 from pywebpush import webpush, WebPushException
+from cryptography.hazmat.primitives.asymmetric import ec
 import json
+
+# Fix for pywebpush compatibility with newer cryptography versions
+try:
+    if isinstance(ec.SECP256R1, type):
+        class SECP256R1Proxy(ec.SECP256R1):
+            def __call__(self):
+                return self
+        ec.SECP256R1 = SECP256R1Proxy()
+except Exception:
+    pass
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -21,27 +32,31 @@ class TakipSistemi:
 
     async def send_push_notification(self, title, message, url=None):
         db = SessionLocal()
-        subs = db.query(PushSubscription).all()
-        for sub in subs:
-            try:
-                webpush(
-                    subscription_info={
-                        "endpoint": sub.endpoint,
-                        "keys": {"p256dh": sub.p256dh, "auth": sub.auth}
-                    },
-                    data=json.dumps({
-                        "title": title,
-                        "body": message,
-                        "url": url
-                    }),
-                    vapid_private_key=self.vapid_private_key,
-                    vapid_claims=self.vapid_claims
-                )
-            except WebPushException as ex:
-                logger.error(f"Push failed: {repr(ex)}")
-            except Exception as ex:
-                logger.error(f"Unexpected push error: {repr(ex)}")
-        db.close()
+        try:
+            subs = db.query(PushSubscription).all()
+            logger.info(f"🔔 {len(subs)} aboneye bildirim gönderiliyor: {title}")
+            for sub in subs:
+                try:
+                    webpush(
+                        subscription_info={
+                            "endpoint": sub.endpoint,
+                            "keys": {"p256dh": sub.p256dh, "auth": sub.auth}
+                        },
+                        data=json.dumps({
+                            "title": title,
+                            "body": message,
+                            "url": url
+                        }),
+                        vapid_private_key=self.vapid_private_key,
+                        vapid_claims=self.vapid_claims
+                    )
+                    logger.info(f"✅ Bildirim başarıyla gönderildi: {sub.endpoint[:30]}...")
+                except WebPushException as ex:
+                    logger.error(f"❌ Push failed: {repr(ex)}")
+                except Exception as ex:
+                    logger.error(f"❌ Unexpected push error: {repr(ex)}")
+        finally:
+            db.close()
 
     async def notify(self, product, new_price):
         title = "🔔 İndirim Yakalandı!"
