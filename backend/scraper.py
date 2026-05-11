@@ -5,6 +5,12 @@ import statistics
 from difflib import SequenceMatcher
 from bs4 import BeautifulSoup
 from curl_cffi import requests
+from services.product_analyzer import ProductAnalyzer
+import os
+from dotenv import load_dotenv
+
+# Load env from current directory
+load_dotenv()
 
 class ETicaretScraper:
     def __init__(self):
@@ -13,6 +19,7 @@ class ETicaretScraper:
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         ]
+        self.analyzer = ProductAnalyzer()
         
         # A) Kategori Bazlı Dinamik Kara Liste (Stop-Words)
         self.category_blacklists = {
@@ -255,6 +262,32 @@ class ETicaretScraper:
         
         if not clean_products:
             clean_products = valid_products
+
+        # --- LLM Akıllı Analiz ---
+        if clean_products:
+            try:
+                print(f"DEBUG: {len(clean_products)} ürün için LLM analizi başlatılıyor...")
+                # Analiz için veriyi hazırla
+                analysis_input = [{"id": str(i), "title": p['name']} for i, p in enumerate(clean_products)]
+                analysis_results = await self.analyzer.analyze_products(query, analysis_input)
+                
+                # Sadece ana ürün olanları tut
+                llm_filtered = []
+                for res in analysis_results:
+                    idx = int(res.id)
+                    p = clean_products[idx]
+                    if res.is_main_product:
+                        # LLM'den gelen ek verileri ekleyelim
+                        p['brand_llm'] = res.brand
+                        p['category_llm'] = res.category
+                        llm_filtered.append(p)
+                    else:
+                        print(f"DEBUG: LLM Elendi: {p['name']} (Sebep: {res.reason})")
+                
+                if llm_filtered:
+                    clean_products = llm_filtered
+            except Exception as e:
+                print(f"DEBUG: LLM Analiz hatası: {e}")
 
         best_product = self.filter_products(clean_products, query, category)
         if best_product:
