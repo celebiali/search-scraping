@@ -9,6 +9,7 @@ import json
 import os
 import logging
 from cryptography.hazmat.primitives.asymmetric import ec
+from tracker import TakipSistemi
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -141,7 +142,6 @@ def get_products(db: Session = Depends(get_db)):
 async def run_initial_sync(product_id: int):
     db = SessionLocal()
     try:
-        from tracker import TakipSistemi
         product = db.query(TrackedProduct).filter(TrackedProduct.id == product_id).first()
         if product:
             sistem = TakipSistemi()

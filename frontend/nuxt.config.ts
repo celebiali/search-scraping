@@ -57,7 +57,7 @@ export default defineNuxtConfig({
     }
   },
   routeRules: {
-    '/api/**': { proxy: 'http://127.0.0.1:8000/**' }
+    '/api/**': { proxy: 'http://134.98.130.247:8000/**' }
   },
   runtimeConfig: {
     public: {
