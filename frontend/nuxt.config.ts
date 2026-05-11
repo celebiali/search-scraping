@@ -63,5 +63,10 @@ export default defineNuxtConfig({
     public: {
       apiBase: '/api'
     }
+  },
+  vite: {
+    server: {
+      allowedHosts: ['hosaw-195-175-31-78.run.pinggy-free.link']
+    }
   }
 })
