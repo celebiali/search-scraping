@@ -167,7 +167,16 @@ async def add_product(product: ProductCreate, background_tasks: BackgroundTasks,
             TrackedProduct.query == product.query,
             TrackedProduct.category == product.category
         ).first()
+        
         if existing:
+            logger.info(f"ℹ️ Ürün zaten takipte: {product.query}")
+            # Zaten ekli olsa bile test için bildirim gönderelim
+            background_tasks.add_task(
+                sistem_servisi.send_push_notification,
+                "🔔 Ürün Zaten Takipte",
+                f"'{product.query}' zaten takip listenizde bulunuyor. Takibe devam ediliyor! ✨",
+                "https://pricetrack-notifier.vercel.app"
+            )
             return existing
             
         db_product = TrackedProduct(query=product.query, category=product.category)
@@ -179,7 +188,7 @@ async def add_product(product: ProductCreate, background_tasks: BackgroundTasks,
         background_tasks.add_task(run_initial_sync, db_product.id)
         
         # Anında bildirim gönder (Test amaçlı ve kullanıcı deneyimi için)
-        logger.info(f"🚀 Ürün eklendi bildirimi tetikleniyor: {product.query}")
+        logger.info(f"🚀 Yeni ürün eklendi bildirimi tetikleniyor: {product.query}")
         background_tasks.add_task(
             sistem_servisi.send_push_notification,
             "✨ Yeni Ürün Takibi Başlatıldı",
