@@ -96,18 +96,33 @@ async def test_notification(db: Session = Depends(get_db)):
 
 @app.post("/subscribe")
 def subscribe(subscription: dict, db: Session = Depends(get_db)):
-    # subscription usually has endpoint, keys {p256dh, auth}
-    db_sub = PushSubscription(
-        endpoint=subscription['endpoint'],
-        p256dh=subscription['keys']['p256dh'],
-        auth=subscription['keys']['auth']
-    )
-    db.add(db_sub)
+    logger.info(f"📥 Yeni abonelik isteği alındı: {subscription.get('endpoint', '')[:30]}...")
+    
+    # Check if endpoint already exists
+    existing = db.query(PushSubscription).filter(PushSubscription.endpoint == subscription['endpoint']).first()
+    
+    if existing:
+        # Update existing subscription keys
+        existing.p256dh = subscription['keys']['p256dh']
+        existing.auth = subscription['keys']['auth']
+        logger.info("🔄 Mevcut abonelik güncellendi.")
+    else:
+        # Create new subscription
+        db_sub = PushSubscription(
+            endpoint=subscription['endpoint'],
+            p256dh=subscription['keys']['p256dh'],
+            auth=subscription['keys']['auth']
+        )
+        db.add(db_sub)
+        logger.info("✅ Yeni abonelik kaydedildi.")
+        
     try:
         db.commit()
-    except:
+        return {"status": "success"}
+    except Exception as e:
         db.rollback()
-    return {"status": "success"}
+        logger.error(f"❌ Abonelik kaydedilirken hata oluştu: {e}")
+        raise HTTPException(status_code=500, detail="Abonelik kaydedilemedi")
 
 # CORS ayarları (Nuxt için)
 app.add_middleware(

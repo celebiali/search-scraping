@@ -14,6 +14,8 @@ self.addEventListener('push', (event) => {
     icon: '/pwa-192x192.png',
     badge: '/pwa-192x192.png',
     vibrate: [100, 50, 100],
+    tag: 'price-alert',
+    renotify: true,
     data: {
       url: data.url || '/'
     }

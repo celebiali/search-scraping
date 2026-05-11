@@ -48,7 +48,9 @@ class TakipSistemi:
                             "url": url
                         }),
                         vapid_private_key=self.vapid_private_key,
-                        vapid_claims=self.vapid_claims
+                        vapid_claims=self.vapid_claims,
+                        ttl=3600,
+                        urgency="high"
                     )
                     logger.info(f"✅ Bildirim başarıyla gönderildi: {sub.endpoint[:30]}...")
                 except WebPushException as ex:
