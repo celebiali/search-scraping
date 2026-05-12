@@ -48,12 +48,14 @@ const subscribeToPush = async () => {
     
     let subscription = await registration.pushManager.getSubscription()
     
-    if (!subscription) {
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-      })
+    if (subscription) {
+      await subscription.unsubscribe()
     }
+    
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+    })
     
     await $fetch(`${config.public.apiBase}/subscribe`, {
       method: 'POST',

@@ -15,6 +15,7 @@ rsync -avz -e "ssh -i $SSH_KEY -o StrictHostKeyChecking=no -o BatchMode=yes" \
     --exclude '.output' \
     --exclude '__pycache__' \
     --exclude 'tracking_system.db' \
+    --exclude 'venv' \
     ./ $USER@$SERVER_IP:$REMOTE_PATH
 
 # Sunucuda docker-compose çalıştır

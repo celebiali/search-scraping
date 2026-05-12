@@ -57,7 +57,7 @@ class TakipSistemi:
                             "url": url
                         }),
                         vapid_private_key=self.vapid_private_key,
-                        vapid_claims=self.vapid_claims,
+                        vapid_claims=self.vapid_claims.copy(),
                         ttl=3600
                     )
                     logger.info(f"✅ Bildirim başarıyla gönderildi: {sub.endpoint[:30]}...")

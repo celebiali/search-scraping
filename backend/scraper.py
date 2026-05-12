@@ -222,7 +222,7 @@ class ETicaretScraper:
             p['final_score'] = similarity
 
         # Ortalama fiyatı bu küme üzerinden tekrar hesapla (daha doğru sonuç için)
-        cluster_avg = statistics.mean([p['price'] for p in filtered_by_price])
+        cluster_avg = statistics.median([p['price'] for p in filtered_by_price])
 
         # En yüksek benzerlik skoruna sahip olanlar arasından en ucuzunu seç
         best_match = min(filtered_by_price, key=lambda x: (-x['final_score'], x['price']))
