@@ -12,10 +12,21 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from tracker import TakipSistemi
 
 # Configure logging
+import logging.handlers
+import os
+
+log_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'api_debug.log')
+file_handler = logging.handlers.RotatingFileHandler(log_file_path, maxBytes=1048576, backupCount=3)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
+# Remove all handlers and add the file handler to ensure we capture it
+logger.handlers = [file_handler]
 
 # Global TakipSistemi instance
+from tracker import TakipSistemi
 sistem_servisi = TakipSistemi()
 
 # Fix for pywebpush compatibility with newer cryptography versions

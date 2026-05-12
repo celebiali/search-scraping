@@ -19,8 +19,17 @@ try:
 except Exception:
     pass
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+import logging.handlers
+import os
+
+log_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'api_debug.log')
+file_handler = logging.handlers.RotatingFileHandler(log_file_path, maxBytes=1048576, backupCount=3)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.handlers = [file_handler]
 
 class TakipSistemi:
     def __init__(self):
@@ -49,8 +58,7 @@ class TakipSistemi:
                         }),
                         vapid_private_key=self.vapid_private_key,
                         vapid_claims=self.vapid_claims,
-                        ttl=3600,
-                        urgency="high"
+                        ttl=3600
                     )
                     logger.info(f"✅ Bildirim başarıyla gönderildi: {sub.endpoint[:30]}...")
                 except WebPushException as ex:

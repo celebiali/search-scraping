@@ -1,0 +1,9 @@
+2026-05-12 09:19:45,660 - INFO - 📥 Yeni abonelik isteği alındı: https://web.push.apple.com/tes...
+2026-05-12 09:19:45,663 - INFO - ✅ Yeni abonelik kaydedildi.
+2026-05-12 09:19:45,665 - INFO - Adding new product: test_product_123 in category elektronik
+2026-05-12 09:19:45,667 - INFO - 🚀 Yeni ürün eklendi bildirimi tetikleniyor: test_product_123
+2026-05-12 09:19:45,678 - INFO - 🔍 Takip ediliyor: test_product_123 (elektronik)
+2026-05-12 09:19:47,478 - WARNING - ⚠️ Ürün bulunamadı: test_product_123
+2026-05-12 09:19:47,479 - INFO - 🔔 2 aboneye bildirim gönderiliyor: ✨ Yeni Ürün Takibi Başlatıldı
+2026-05-12 09:19:47,480 - ERROR - ❌ Unexpected push error: TypeError("webpush() got an unexpected keyword argument 'urgency'")
+2026-05-12 09:19:47,480 - ERROR - ❌ Unexpected push error: TypeError("webpush() got an unexpected keyword argument 'urgency'")
