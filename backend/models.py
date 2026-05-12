@@ -59,7 +59,13 @@ logger = logging.getLogger(__name__)
 # Database Setup
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'tracking_system.db')
-engine = create_engine(f'sqlite:///{DB_PATH}', connect_args={"check_same_thread": False, "timeout": 30})
+engine = create_engine(
+    f'sqlite:///{DB_PATH}', 
+    connect_args={"check_same_thread": False, "timeout": 30},
+    pool_size=20,
+    max_overflow=10,
+    pool_pre_ping=True
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 from sqlalchemy import event

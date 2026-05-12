@@ -176,8 +176,7 @@ async def run_initial_sync(product_id: int):
     try:
         product = db.query(TrackedProduct).filter(TrackedProduct.id == product_id).first()
         if product:
-            sistem = TakipSistemi()
-            await sistem.track_product(db, product)
+            await sistem_servisi.track_product(db, product)
     finally:
         db.close()
 

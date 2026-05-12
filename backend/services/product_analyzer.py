@@ -2,7 +2,7 @@ import os
 import json
 import asyncio
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import httpx
 from dotenv import load_dotenv
 
@@ -12,6 +12,11 @@ load_dotenv(dotenv_path=env_path)
 
 class ProductAnalysis(BaseModel):
     id: str
+    
+    @field_validator('id', mode='before')
+    @classmethod
+    def convert_id_to_str(cls, v):
+        return str(v)
     product_name: str
     is_main_product: bool = True
     category: Optional[str] = "Unknown"
