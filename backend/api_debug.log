@@ -7,3 +7,10 @@
 2026-05-12 09:19:47,479 - INFO - 🔔 2 aboneye bildirim gönderiliyor: ✨ Yeni Ürün Takibi Başlatıldı
 2026-05-12 09:19:47,480 - ERROR - ❌ Unexpected push error: TypeError("webpush() got an unexpected keyword argument 'urgency'")
 2026-05-12 09:19:47,480 - ERROR - ❌ Unexpected push error: TypeError("webpush() got an unexpected keyword argument 'urgency'")
+2026-05-12 09:25:30,578 - INFO - 📥 Yeni abonelik isteği alındı: https://web.push.apple.com/tes...
+2026-05-12 09:25:30,581 - INFO - ✅ Yeni abonelik kaydedildi.
+2026-05-12 09:25:30,584 - INFO - Adding new product: test_product_123 in category elektronik
+2026-05-12 09:25:30,585 - INFO - ℹ️ Ürün zaten takipte: test_product_123
+2026-05-12 09:25:30,586 - INFO - 🔔 2 aboneye bildirim gönderiliyor: 🔔 Ürün Zaten Takipte
+2026-05-12 09:25:31,129 - INFO - ✅ Bildirim başarıyla gönderildi: https://web.push.apple.com/QP5...
+2026-05-12 09:25:31,129 - ERROR - ❌ Push failed: WebPushException('Invalid p256dh key specified')

@@ -9,7 +9,7 @@ REMOTE_PATH="/home/opc/search-scraping"
 echo "🚀 Sunucuya bağlanılıyor: $SERVER_IP"
 
 # Dosyaları gönder (node_modules ve pycache hariç)
-rsync -avz -e "ssh -i $SSH_KEY" \
+rsync -avz -e "ssh -i $SSH_KEY -o StrictHostKeyChecking=no -o BatchMode=yes" \
     --exclude 'node_modules' \
     --exclude '.nuxt' \
     --exclude '.output' \
@@ -18,7 +18,7 @@ rsync -avz -e "ssh -i $SSH_KEY" \
     ./ $USER@$SERVER_IP:$REMOTE_PATH
 
 # Sunucuda docker-compose çalıştır
-ssh -i $SSH_KEY $USER@$SERVER_IP << 'EOF'
+ssh -i $SSH_KEY -o StrictHostKeyChecking=no -o BatchMode=yes $USER@$SERVER_IP << 'EOF'
     cd /home/opc/search-scraping
     docker-compose down
     docker-compose up -d --build
