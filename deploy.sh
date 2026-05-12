@@ -18,10 +18,18 @@ rsync -avz -e "ssh -i $SSH_KEY -o StrictHostKeyChecking=no -o BatchMode=yes" \
     --exclude 'venv' \
     ./ $USER@$SERVER_IP:$REMOTE_PATH
 
-# Sunucuda docker-compose çalıştır
+# Sunucuda uygulamayı başlat
 ssh -i $SSH_KEY -o StrictHostKeyChecking=no -o BatchMode=yes $USER@$SERVER_IP << 'EOF'
     cd /home/opc/search-scraping
-    docker-compose down
-    docker-compose up -d --build
-    echo "✅ Dağıtım tamamlandı! Uygulama arka planda çalışıyor."
+    
+    if command -v docker-compose &> /dev/null; then
+        echo "🐳 Docker Compose kullanılıyor..."
+        docker-compose down
+        docker-compose up -d --build
+    else
+        echo "🏃 Manuel başlatma (nohup) kullanılıyor..."
+        chmod +x scratch/remote_start.sh
+        ./scratch/remote_start.sh
+    fi
+    echo "✅ Dağıtım tamamlandı!"
 EOF

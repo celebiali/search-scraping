@@ -69,7 +69,6 @@ class ETicaretScraper:
         encoded_query = urllib.parse.quote(query)
         search_url = f"https://www.amazon.com.tr/s?k={encoded_query}"
         
-        # Mobil (iPhone) kılığına giriyoruz, Amazon mobile daha az blok koyar
         headers = {
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -78,56 +77,60 @@ class ETicaretScraper:
             "Connection": "keep-alive",
         }
         
-        async with requests.AsyncSession(impersonate="chrome120") as s:
-            try:
-                # Önce ana sayfaya dokunup bir cookie alalım
-                await s.get("https://www.amazon.com.tr", headers=headers, timeout=10)
-                await asyncio.sleep(0.5)
-                
-                resp = await s.get(search_url, headers=headers, timeout=20)
-                if resp.status_code != 200:
-                    print(f"Amazon Blocked: {resp.status_code}")
-                    return []
+        for attempt in range(2):
+            async with requests.AsyncSession(impersonate="chrome120") as s:
+                try:
+                    await s.get("https://www.amazon.com.tr", headers=headers, timeout=10)
+                    await asyncio.sleep(random.uniform(0.5, 1.2))
+                    
+                    resp = await s.get(search_url, headers=headers, timeout=20)
+                    if resp.status_code != 200:
+                        print(f"DEBUG: Amazon Blocked ({resp.status_code}) - Attempt {attempt+1}")
+                        if attempt == 0: 
+                            await asyncio.sleep(2)
+                            continue
+                        return []
 
-                soup = BeautifulSoup(resp.text, 'html.parser')
-                # Mobil ve Desktop selector'larını harmanla
-                items = soup.select('div[data-component-type="s-search-result"]') or \
-                        soup.select('.s-result-item[data-asin]') or \
-                        soup.select('.s-item-container')
-                
-                products = []
-                for item in items:
-                    # Amazon mobil sayfalarda başlık genelde birden fazla span (marka + isim) şeklinde bölünür
-                    # Bu span'ları birleştirerek tam ismi oluşturuyoruz
-                    name_nodes = item.select('h2 span') or \
-                                 item.select('.a-size-base-plus') or \
-                                 item.select('.s-line-clamp-3')
+                    soup = BeautifulSoup(resp.text, 'html.parser')
+                    items = soup.select('div[data-component-type="s-search-result"]') or \
+                            soup.select('.s-result-item[data-asin]') or \
+                            soup.select('.s-item-container')
                     
-                    if name_nodes:
-                        name_text = " ".join([n.get_text(strip=True) for n in name_nodes if n.get_text(strip=True)])
-                    else:
-                        continue
-                    
-                    if not name_text:
-                        continue
-                    
-                    price_whole = item.select_one('.a-price-whole')
-                    link_tag = item.select_one('h2 a') or item.select_one('a.a-link-normal')
-                    
-                    if name_text and price_whole and link_tag:
-                        # Amazon TR fiyat formatı: 7.199,00
-                        price_val = self._parse_price(price_whole.text)
-                        if price_val:
-                            products.append({
-                                'name': name_text,
-                                'price': price_val,
-                                'link': 'https://www.amazon.com.tr' + link_tag['href'] if not link_tag['href'].startswith('http') else link_tag['href'],
-                                'source': 'Amazon'
-                            })
-                return products
-            except Exception as e:
-                print(f"Amazon error: {e}")
-                return []
+                    if not items:
+                        print(f"DEBUG: Amazon result empty for '{query}' - Attempt {attempt+1}")
+                        if attempt == 0:
+                            await asyncio.sleep(2)
+                            continue
+
+                    products = []
+                    for item in items:
+                        name_nodes = item.select('h2 span') or \
+                                     item.select('.a-size-base-plus') or \
+                                     item.select('.s-line-clamp-3')
+                        
+                        if name_nodes:
+                            name_text = " ".join([n.get_text(strip=True) for n in name_nodes if n.get_text(strip=True)])
+                        else:
+                            continue
+                        
+                        price_whole = item.select_one('.a-price-whole')
+                        link_tag = item.select_one('h2 a') or item.select_one('a.a-link-normal')
+                        
+                        if name_text and price_whole and link_tag:
+                            price_val = self._parse_price(price_whole.text)
+                            if price_val:
+                                products.append({
+                                    'name': name_text,
+                                    'price': price_val,
+                                    'link': 'https://www.amazon.com.tr' + link_tag['href'] if not link_tag['href'].startswith('http') else link_tag['href'],
+                                    'source': 'Amazon'
+                                })
+                    return products
+                except Exception as e:
+                    print(f"DEBUG: Amazon error: {e}")
+                    if attempt == 0: continue
+                    return []
+        return []
 
     async def fetch_hepsiburada(self, query):
         import urllib.parse

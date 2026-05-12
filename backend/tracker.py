@@ -40,13 +40,23 @@ class TakipSistemi:
         init_db()
 
     async def send_push_notification(self, title, message, url=None):
+        import traceback
+        
+        # Wrapper to strip unknown args that might cause TypeError on some versions
+        def safe_webpush(**kwargs):
+            # Only keep arguments supported by the server's version of pywebpush
+            supported = {'subscription_info', 'data', 'vapid_private_key', 'vapid_claims', 
+                         'content_encoding', 'curl', 'timeout', 'ttl', 'verbose', 'headers', 'requests_session'}
+            filtered = {k: v for k, v in kwargs.items() if k in supported}
+            return webpush(**filtered)
+
         db = SessionLocal()
         try:
             subs = db.query(PushSubscription).all()
             logger.info(f"🔔 {len(subs)} aboneye bildirim gönderiliyor: {title}")
             for sub in subs:
                 try:
-                    webpush(
+                    safe_webpush(
                         subscription_info={
                             "endpoint": sub.endpoint,
                             "keys": {"p256dh": sub.p256dh, "auth": sub.auth}
@@ -65,6 +75,7 @@ class TakipSistemi:
                     logger.error(f"❌ Push failed: {repr(ex)}")
                 except Exception as ex:
                     logger.error(f"❌ Unexpected push error: {repr(ex)}")
+                    logger.error(traceback.format_exc())
         finally:
             db.close()
 
@@ -82,8 +93,8 @@ class TakipSistemi:
         if best_match:
             new_price = best_match['price']
             
-            # Fiyat düşüşü kontrolü (En düşüğün dibini kovalama)
-            if product.best_price_ever > 0 and new_price < (product.best_price_ever * 0.95):
+            # Fiyat düşüşü kontrolü (%3 düşüş yeterli olsun)
+            if product.best_price_ever > 0 and new_price < (product.best_price_ever * 0.97):
                 await self.notify(product, new_price)
             
             try:
